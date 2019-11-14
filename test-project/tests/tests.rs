@@ -19,7 +19,6 @@ fn run_mode(mode: &'static str, custom_dir: Option<&'static str>) {
 #[test]
 fn compile_test() {
     run_mode("compile-fail", None);
-    run_mode("run-pass", None);
     run_mode("ui", None);
 
     #[cfg(feature = "rustc")]
