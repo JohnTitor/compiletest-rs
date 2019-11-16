@@ -115,8 +115,8 @@ pub fn test_opts(config: &Config) -> test::TestOpts {
     test::TestOpts {
         filter: config.filter.clone(),
         filter_exact: config.filter_exact,
-        //#[cfg(feature = "rustc")]
-        //force_run_in_process: false,
+        #[cfg(feature = "rustc")]
+        force_run_in_process: false,
         #[cfg(feature = "rustc")]
         exclude_should_panic: false,
         run_ignored: if config.run_ignored { test::RunIgnored::Yes } else { test::RunIgnored::No },
