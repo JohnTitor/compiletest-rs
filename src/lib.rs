@@ -96,7 +96,7 @@ pub fn run_tests(config: &Config) {
     // Prevent issue #21352 UAC blocking .exe containing 'patch' etc. on Windows
     // If #11207 is resolved (adding manifest to .exe) this becomes unnecessary
     env::set_var("__COMPAT_LAYER", "RunAsInvoker");
-    let res = test::run_tests_console(&opts, tests.into_iter().collect());
+    let res = test::console::run_tests_console(&opts, tests.into_iter().collect());
     match res {
         Ok(true) => {}
         Ok(false) => panic!("Some tests failed"),
@@ -106,14 +106,14 @@ pub fn run_tests(config: &Config) {
     }
 }
 
-pub fn test_opts(config: &Config) -> test::TestOpts {
-    test::TestOpts {
+pub fn test_opts(config: &Config) -> test::cli::TestOpts {
+    test::cli::TestOpts {
         filter: config.filter.clone(),
         filter_exact: config.filter_exact,
         exclude_should_panic: false,
         force_run_in_process: false,
-        run_ignored: if config.run_ignored { test::RunIgnored::Yes } else { test::RunIgnored::No },
-        format: if config.quiet { test::OutputFormat::Terse } else { test::OutputFormat::Pretty },
+        run_ignored: if config.run_ignored { test::options::RunIgnored::Yes } else { test::options::RunIgnored::No },
+        format: if config.quiet { test::options::OutputFormat::Terse } else { test::options::OutputFormat::Pretty },
         logfile: config.logfile.clone(),
         run_tests: true,
         bench_benchmarks: true,
@@ -121,16 +121,16 @@ pub fn test_opts(config: &Config) -> test::TestOpts {
             Ok(val) => &val != "0",
             Err(_) => false
         },
-        color: test::AutoColor,
+        color: test::options::ColorConfig::AutoColor,
         test_threads: None,
         skip: vec![],
         list: false,
-        options: test::Options::new(),
+        options: test::options::Options::new(),
         time_options: None,
     }
 }
 
-pub fn make_tests(config: &Config) -> Vec<test::TestDescAndFn> {
+pub fn make_tests(config: &Config) -> Vec<test::types::TestDescAndFn> {
     debug!("making tests from {:?}",
            config.src_base.display());
     let mut tests = Vec::new();
@@ -147,7 +147,7 @@ fn collect_tests_from_dir(config: &Config,
                           base: &Path,
                           dir: &Path,
                           relative_dir_path: &Path,
-                          tests: &mut Vec<test::TestDescAndFn>)
+                          tests: &mut Vec<test::types::TestDescAndFn>)
                           -> io::Result<()> {
     // Ignore directories that contain a file
     // `compiletest-ignore-dir`.
@@ -237,28 +237,28 @@ pub fn is_test(file_name: &OsString) -> bool {
     !invalid_prefixes.iter().any(|p| file_name.starts_with(p))
 }
 
-pub fn make_test(config: &Config, testpaths: &TestPaths) -> test::TestDescAndFn {
+pub fn make_test(config: &Config, testpaths: &TestPaths) -> test::types::TestDescAndFn {
     let early_props = EarlyProps::from_file(config, &testpaths.file);
 
     // The `should-fail` annotation doesn't apply to pretty tests,
     // since we run the pretty printer across all tests by default.
     // If desired, we could add a `should-fail-pretty` annotation.
     let should_panic = match config.mode {
-        Pretty => test::ShouldPanic::No,
+        Pretty => test::options::ShouldPanic::No,
         _ => if early_props.should_fail {
-            test::ShouldPanic::Yes
+            test::options::ShouldPanic::Yes
         } else {
-            test::ShouldPanic::No
+            test::options::ShouldPanic::No
         }
     };
 
-    test::TestDescAndFn {
-        desc: test::TestDesc {
+    test::types::TestDescAndFn {
+        desc: test::types::TestDesc {
             name: make_test_name(config, testpaths),
             ignore: early_props.ignore,
             should_panic: should_panic,
             allow_fail: false,
-            test_type: test::TestType::IntegrationTest,
+            test_type: test:::types::TestType::IntegrationTest,
         },
         testfn: make_test_closure(config, testpaths),
     }
@@ -274,7 +274,7 @@ fn stamp(config: &Config, testpaths: &TestPaths) -> PathBuf {
           .join(stamp_name)
 }
 
-pub fn make_test_name(config: &Config, testpaths: &TestPaths) -> test::TestName {
+pub fn make_test_name(config: &Config, testpaths: &TestPaths) -> test::types::TestName {
     // Convert a complete path to something like
     //
     //    run-pass/foo/bar/baz.rs
@@ -282,13 +282,13 @@ pub fn make_test_name(config: &Config, testpaths: &TestPaths) -> test::TestName 
         PathBuf::from(config.src_base.file_name().unwrap())
         .join(&testpaths.relative_dir)
         .join(&testpaths.file.file_name().unwrap());
-    test::DynTestName(format!("[{}] {}", config.mode, path.display()))
+    test::types::DynTestName(format!("[{}] {}", config.mode, path.display()))
 }
 
-pub fn make_test_closure(config: &Config, testpaths: &TestPaths) -> test::TestFn {
+pub fn make_test_closure(config: &Config, testpaths: &TestPaths) -> test::types::TestFn {
     let config = config.clone();
     let testpaths = testpaths.clone();
-    test::DynTestFn(Box::new(move || {
+    test::types::DynTestFn(Box::new(move || {
         let config = config.clone();  // FIXME: why is this needed?
         runtest::run(config, &testpaths)
     }))

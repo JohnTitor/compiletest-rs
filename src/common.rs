@@ -17,7 +17,7 @@ use std::path::PathBuf;
 #[cfg(feature = "rustc")]
 use rustc;
 
-use test::ColorConfig;
+use test::options::ColorConfig;
 use runtest::dylib_env_var;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
