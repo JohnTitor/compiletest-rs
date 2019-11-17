@@ -11,6 +11,7 @@
 #![crate_type = "lib"]
 
 #![cfg_attr(feature = "rustc", feature(rustc_private))]
+#![cfg_attr(feature = "rustc", feature(test))]
 
 #![deny(unused_imports)]
 
